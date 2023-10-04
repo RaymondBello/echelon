@@ -71,7 +71,7 @@ export default function WebGPUCanvas() {
       // Finish the GPUCommandBuffer and immediately submit it to the GPU
       device.queue.submit([encoder.finish()]);
 
-      // pass
+      // Visit https://codelabs.developers.google.com/your-first-webgpu-app#2
       //
     };
 
