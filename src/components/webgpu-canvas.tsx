@@ -1,14 +1,17 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-
-
+import useSWR from "swr";
 
 export default function WebGPUCanvas() {
   const [pageState, setPageState] = useState({ active: true });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Variables for emulator
-  const GRID_SIZE = 4;
+  const GRID_SIZE = 100;
+
+  // Fetch data using SWR
+  const fetcher = (url: string) => fetch(url).then((res) => res.json());
+  const { data, error } = useSWR('/api/readshaders', fetcher);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -41,6 +44,13 @@ export default function WebGPUCanvas() {
         return;
       }
 
+      if (error) {
+        console.error('could not load shaders', error);
+        return;
+      }
+      else if (data) {
+        console.log('success: loaded shader', data);
+      }
 
       // Configure the Canvas
       const context = canvas.getContext("webgpu") as GPUCanvasContext;
@@ -56,33 +66,15 @@ export default function WebGPUCanvas() {
       // Steps to implement a WebGPU render pipeline
       // 1. Define the shader stages (vertex and fragment shaders)
       const vertices = new Float32Array([
-        // X,   Y
-        -0.5,
-        -0.5, // Triangle 1
-        0.5,
-        -0.5,
-        0.5,
-        0.5,
+        // X, Y
+        -1, -1, // Triangle 1
+        1, -1,
+        1, 1,
 
-        -0.5,
-        -0.5, // Triangle 2
-        0.5,
-        0.5,
-        -0.5,
-        0.5,
+        -1, -1, // Triangle 2
+        1, 1,
+        -1, 1,
       ]);
-
-      // function generateGridVertices(width, height) {
-      //   const vertices = [];
-      //   for (let i = 0; i < width; i++) {
-      //     for (let j = 0; j < height; j++) {
-      //       vertices.push(i / width - 0.5, j / height - 0.5);
-      //     }
-      //   }
-      //   return new Float32Array(vertices);
-      // }
-
-      // const vertices = generateGridVertices(512, 512);
 
 
       // Create a buffer for the vertices
@@ -109,127 +101,115 @@ export default function WebGPUCanvas() {
       // This data will be used by the GPU when rendering the grid.
       device.queue.writeBuffer(uniformBuffer, 0, uniformArray);
 
-
       // Create a shader module for the device
-      const cellShaderModule = device.createShaderModule({
-        label: "Cell shader", // Label for the shader module
-        code: `
-          // This is where the shader code will be written
-          // The shader code is responsible for the graphical effects
+      // NOTE: This is only be done after the shaders are read
+      // and are not undefined
+      if (data && data.shaderData) {
 
-          @group(0) @binding(0) var<uniform> grid: vec2f;
-
-          @vertex
-          fn vertexMain(@location(0) pos: vec2f) ->
-            @builtin(position) vec4f {
-            return vec4f(pos/grid, 0, 1);
-          }
-
-          @fragment
-          fn fragmentMain() -> @location(0) vec4f {
-            return vec4f(1, 0, 1, 1);
-          }
-        `,
-      });
+        const cellShaderModule = device.createShaderModule({
+          label: "Cell Shader",
+          code: data.shaderData
+        });
 
 
-      // 2. Define the layout of the pipeline (input and output formats, etc.)
-      const vertexBufferLayout = {
-        arrayStride: 8,
-        attributes: [
-          {
-            format: "float32x2",
-            offset: 0,
-            shaderLocation: 0, // Position, see vertex shader
-          },
-        ],
-      };
-
-
-      // 3. Create the pipeline using the device and the defined layout and shaders
-      const cellPipeline = device.createRenderPipeline({
-        label: "Cell pipeline",
-        layout: "auto",
-        vertex: {
-          module: cellShaderModule,
-          entryPoint: "vertexMain",
-          buffers: [vertexBufferLayout],
-        },
-        fragment: {
-          module: cellShaderModule,
-          entryPoint: "fragmentMain",
-          targets: [
+        // 2. Define the layout of the pipeline (input and output formats, etc.)
+        const vertexBufferLayout = {
+          arrayStride: 8,
+          attributes: [
             {
-              format: canvasFormat,
+              format: "float32x2",
+              offset: 0,
+              shaderLocation: 0, // Position, see vertex shader
             },
           ],
-        },
-      });
+        };
 
-      const bindGroup = device.createBindGroup({
-        label: "Cell renderer bind group",
-        layout: cellPipeline.getBindGroupLayout(0),
-        entries: [
-          {
-            binding: 0,
-            resource: { buffer: uniformBuffer },
+
+        // 3. Create the pipeline using the device and the defined layout and shaders
+        const cellPipeline = device.createRenderPipeline({
+          label: "Cell pipeline",
+          layout: "auto",
+          vertex: {
+            module: cellShaderModule,
+            entryPoint: "vertexMain",
+            buffers: [vertexBufferLayout],
           },
-        ],
-      });
-
-
-      // 4. Create a command encoder
-      // Canvas Dimensions and aspect ratio
-      //   const devicePixelRatio = window.devicePixelRatio || 1;
-      //   canvas.width = canvas.clientWidth * devicePixelRatio;
-      //   canvas.height = canvas.clientHeight * devicePixelRatio;
-      //   const presentationFormat = gpuNavigator.gpu.getPreferredCanvasFormat();
-
-      // Clear the Canvas
-      const encoder = device.createCommandEncoder();
-
-
-      // 5. Begin a render pass with the command encoder
-      // Render Pass
-      const pass = encoder.beginRenderPass({
-        colorAttachments: [
-          {
-            view: context.getCurrentTexture().createView(),
-            loadOp: "clear",
-            storeOp: "store",
-            clearValue: [0.1, 0.2, 0.5, 1.0], // New line
+          fragment: {
+            module: cellShaderModule,
+            entryPoint: "fragmentMain",
+            targets: [
+              {
+                format: canvasFormat,
+              },
+            ],
           },
-        ],
-      });
+        });
+
+        const bindGroup = device.createBindGroup({
+          label: "Cell renderer bind group",
+          layout: cellPipeline.getBindGroupLayout(0),
+          entries: [
+            {
+              binding: 0,
+              resource: { buffer: uniformBuffer },
+            },
+          ],
+        });
 
 
-      // 6. Set the pipeline for the render pass
-      pass.setPipeline(cellPipeline);
-      pass.setVertexBuffer(0, vertexBuffer);
+        // 4. Create a command encoder
+        // Canvas Dimensions and aspect ratio
+        //   const devicePixelRatio = window.devicePixelRatio || 1;
+        //   canvas.width = canvas.clientWidth * devicePixelRatio;
+        //   canvas.height = canvas.clientHeight * devicePixelRatio;
+        //   const presentationFormat = gpuNavigator.gpu.getPreferredCanvasFormat();
 
-      pass.setBindGroup(0, bindGroup);
-
-
-      // 7. Draw commands
-      pass.draw(vertices.length / 2); // 6 vertices
-
-
-      // 8. End the render pass
-      pass.end();
+        // Clear the Canvas
+        const encoder = device.createCommandEncoder();
 
 
-      // 9. Finish encoding commands
-      // 10. Submit the command buffer to the device's queue for execution
-      // Finish the GPUCommandBuffer and immediately submit it to the GPU
-      device.queue.submit([encoder.finish()]);
+        // 5. Begin a render pass with the command encoder
+        // Render Pass
+        const pass = encoder.beginRenderPass({
+          colorAttachments: [
+            {
+              view: context.getCurrentTexture().createView(),
+              loadOp: "clear",
+              storeOp: "store",
+              clearValue: [0.1, 0.2, 0.5, 1.0], // New line
+            },
+          ],
+        });
 
-      
+
+        // 6. Set the pipeline for the render pass
+        pass.setPipeline(cellPipeline); // Set the pipeline for the render pass
+        pass.setVertexBuffer(0, vertexBuffer); // Set the vertex buffer
+
+        pass.setBindGroup(0, bindGroup); // Set the bind group
+
+
+        // 7. Draw commands
+        pass.draw(vertices.length / 2, GRID_SIZE * GRID_SIZE); // 6 vertices
+
+
+        // 8. End the render pass
+        pass.end();
+
+
+        // 9. Finish encoding commands
+        // 10. Submit the command buffer to the device's queue for execution
+        // Finish the GPUCommandBuffer and immediately submit it to the GPU
+        device.queue.submit([encoder.finish()]);
+
+      }
+
       // Visit https://codelabs.developers.google.com/your-first-webgpu-app#2
     };
 
     // Call init function
     init();
-  }, [pageState.active]);
+  }, [pageState.active && data]);
 
   return (
     <div className="space-y-5 items-center justify-between">
