@@ -8,14 +8,26 @@ struct VertexInput {
 
 struct VertexOutput {
     @builtin(position) pos: vec4f,
-    @location(0) cell: vec2f, // New line!
+    @location(0) cell: vec2f, 
+    @location(1) cellColor: vec4f,
 };
 
 @group(0) @binding(0) var<uniform> grid: vec2f;
+@group(0) @binding(1) var<storage> cellState: array<u32>; 
 
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
     
+    let state = f32(cellState[input.instance]); 
+
+    // Expand 32bit into 4 channels R, G, B, A
+    let index = cellState[input.instance];
+
+    let red   = f32(index / 8);
+    let green = f32(index / 8);
+    let blue  = f32(index / 8);
+    let alpha = f32(index / 8);
+
     // Create a cell
     let i = f32(input.instance);
 
@@ -36,10 +48,21 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
     output.pos = vec4(gridPos, 0, 1);
     output.cell = cell;
+    output.cellColor = vec4f(red, green, blue, alpha);
     return output;
 }
 
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
-    return vec4f(1, 0.5, 0.25, 1);
+
+    // return vec4f(input.pos, 0, 1);
+    let color = input.cell / grid;
+
+    let cellColor = vec4f(input.cellColor.x, input.cellColor.y, input.cellColor.z, 1);
+
+    let colorr = vec4f(1,0,0,1);
+
+    // return input.cellColor;
+    // return colorr;
+    return vec4f(color, 1-color.x, 1);
 }
