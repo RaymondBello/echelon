@@ -6,6 +6,9 @@ import Bus from "./bus";
 let nes = new Bus();
 
 
+
+
+
 export default function WebGPUCanvas() {
   const [pageState, setPageState] = useState({ active: true });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -40,13 +43,34 @@ export default function WebGPUCanvas() {
     clock_cnt: 0x00
   });
 
+
+  // This function resets the CPU and updates the emulation state
   const reset_cpu = () => {
     nes.cpu.reset();
+
+    // update the emulation state with the current CPU state
+    setEmuStage(prevState => ({
+      ...prevState,
+      status_reg: nes.cpu.status, // update the status register
+      pc: nes.cpu.pc, // update the program counter
+      a_reg: nes.cpu.a, // update the accumulator register
+      x_reg: nes.cpu.x, // update the x register
+      y_reg: nes.cpu.y, // update the y register
+      stkp: nes.cpu.stkp, // update the stack pointer
+      fetched: nes.cpu.fetched, // update the fetched value
+      opcode: nes.cpu.lookup[nes.cpu.opcode].name, // update the current opcode
+      cycles: nes.cpu.cycles, // update the number of cycles remaining
+      temp: nes.cpu.temp, // update the temporary variable
+      addr_abs: nes.cpu.addr_abs, // update the absolute address
+      addr_rel: nes.cpu.addr_rel, // update the relative address
+      clock_cnt: nes.cpu.clock_count // update the clock count
+    }));
   }
+
 
   // This function clocks the CPU and updates the emulation state
   const clock_cpu = () => {
-    
+
     // Clock the CPU
     nes.cpu.clock(); // increment the clock count 
 
@@ -54,7 +78,7 @@ export default function WebGPUCanvas() {
     while (nes.cpu.cycles > 0) {
       nes.cpu.clock(); // increment the clock count 
     }
-    
+
     // update the emulation state with the current CPU state
     setEmuStage(prevState => ({
       ...prevState,
@@ -74,7 +98,6 @@ export default function WebGPUCanvas() {
     }));
 
   }
-
 
 
   if (data && data.shaderData) {
@@ -126,9 +149,9 @@ export default function WebGPUCanvas() {
     // nes.cpu.clock();
 
 
-    
+
   }
-  
+
 
   // Use effect to setup initial canvas
   useEffect(() => {
@@ -377,7 +400,7 @@ export default function WebGPUCanvas() {
 
   return (
     <div className="lg:flex lg:space-x-5 lg:space-y-0 space-y-5 items-center justify-between">
-      
+
       <div className="relative flex justify-center place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
         <canvas
           ref={canvasRef}
@@ -397,9 +420,8 @@ export default function WebGPUCanvas() {
         "lg:mb-0": On large screens, sets the margin bottom to 0
         "lg:grid-cols-4": On large screens, sets the grid to have 4 columns
         "lg:text-left": On large screens, aligns the text to the left */}
-        
-        <p>
 
+        <div>
           <button className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded" onClick={() => clock_cpu()}>
             Single-step
           </button>
@@ -411,7 +433,6 @@ export default function WebGPUCanvas() {
           </button>
           <br />
 
-
           <button className="bg-red-400 hover:bg-red-700 text-white py-2 px-4 rounded">
             Load ROM file
           </button>
@@ -420,32 +441,66 @@ export default function WebGPUCanvas() {
             Save
           </button>
 
-          <br />
-          Status (NOUBDIZC): {"0x" + emuState.status_reg.toString(16).toUpperCase()}
           
-          <br />A Register: {toHexExpression(emuState.a_reg)}
-          <br />X Register: {toHexExpression(emuState.x_reg)}
-          <br />Y Register: {toHexExpression(emuState.y_reg)}
-          <br />
-          Stack Pointer: {toHexExpression(emuState.stkp)}
-          <br />
-          Fetched: {toHexExpression(emuState.fetched)}
-          <br />
-          PC: {toHexExpression(emuState.pc)}
-          <br />
-          Opcode: {emuState.opcode}
-          <br />
-          Cycles: {emuState.cycles}
-          <br />
-          Temp: {toHexExpression(emuState.temp)}
-          <br />
-          Address Absolute: {toHexExpression(emuState.addr_abs)}
-          <br />
-          Address Relative: {toHexExpression(emuState.addr_rel)}
-          <br />
-          Clock Count: {emuState.clock_cnt}
-        </p>
-        
+        </div>
+
+
+        <div className="tabs-container">
+
+          <ul aria-labelledby="tabs-title">
+            <li><a id="tab-1" href="#variables"> Variables </a></li>
+            <li><a id="tab-2" href="#disassembler"> Disassembler </a></li>
+            <li><a id="tab-4" href="#textures"> Textures </a></li>
+            <li><a id="tab-3" href="#settings"> Settings </a></li>
+          </ul>
+
+          <div className="tabs__panels flow">
+            <div id="variables" aria-labelledby="tab-1">
+              <p>This is some random text.1</p>
+
+            </div>
+
+            <div id="disassembler" aria-labelledby="tab-2">
+              <br />
+              Status (NOUBDIZC): {"0x" + emuState.status_reg.toString(16).toUpperCase()}
+
+              <br />A Register: {toHexExpression(emuState.a_reg)}
+              <br />X Register: {toHexExpression(emuState.x_reg)}
+              <br />Y Register: {toHexExpression(emuState.y_reg)}
+              <br />
+              Stack Pointer: {toHexExpression(emuState.stkp)}
+              <br />
+              Fetched: {toHexExpression(emuState.fetched)}
+              <br />
+              PC: {toHexExpression(emuState.pc)}
+              <br />
+              Opcode: {emuState.opcode}
+              <br />
+              Cycles: {emuState.cycles}
+              <br />
+              Temp: {toHexExpression(emuState.temp)}
+              <br />
+              Address Absolute: {toHexExpression(emuState.addr_abs)}
+              <br />
+              Address Relative: {toHexExpression(emuState.addr_rel)}
+              <br />
+              Clock Count: {emuState.clock_cnt}
+
+            </div>
+
+            <div id="textures" aria-labelledby="tab-3">
+              <p>This is some random text.2</p>
+
+            </div>
+
+            <div id="settings" aria-labelledby="tab-4">
+              <p>This is some random text.3</p>
+
+            </div>
+          </div>
+
+        </div>
+
       </div>
 
     </div>
