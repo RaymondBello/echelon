@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { Tab } from '@headlessui/react'
+import Editor from '@monaco-editor/react';
 import useSWR from "swr";
 import Bus from "./bus";
 
@@ -10,6 +12,7 @@ let nes = new Bus();
 
 
 export default function WebGPUCanvas() {
+
   const [pageState, setPageState] = useState({ active: true });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -25,6 +28,11 @@ export default function WebGPUCanvas() {
     const hex = num.toString(16).toUpperCase();
     return num <= 0xFF ? `0x${hex}` : `0x${hex}`;
   };
+
+  // Create a utility function for joining class names
+  function classNames(...classes: string[]) {
+    return classes.filter(Boolean).join(' ')
+  }
 
   // Emulation state variable
   const [emuState, setEmuStage] = useState({
@@ -51,18 +59,18 @@ export default function WebGPUCanvas() {
     // update the emulation state with the current CPU state
     setEmuStage(prevState => ({
       ...prevState,
-      status_reg: nes.cpu.status, // update the status register
-      pc: nes.cpu.pc, // update the program counter
-      a_reg: nes.cpu.a, // update the accumulator register
-      x_reg: nes.cpu.x, // update the x register
-      y_reg: nes.cpu.y, // update the y register
-      stkp: nes.cpu.stkp, // update the stack pointer
-      fetched: nes.cpu.fetched, // update the fetched value
-      opcode: nes.cpu.lookup[nes.cpu.opcode].name, // update the current opcode
+      status_reg: nes.cpu.status[0], // update the status register
+      pc: nes.cpu.pc[0], // update the program counter
+      a_reg: nes.cpu.a[0], // update the accumulator register
+      x_reg: nes.cpu.x[0], // update the x register
+      y_reg: nes.cpu.y[0], // update the y register
+      stkp: nes.cpu.stkp[0], // update the stack pointer
+      fetched: nes.cpu.fetched[0], // update the fetched value
+      opcode: nes.cpu.lookup[nes.cpu.opcode[0]].name, // update the current opcode
       cycles: nes.cpu.cycles, // update the number of cycles remaining
-      temp: nes.cpu.temp, // update the temporary variable
-      addr_abs: nes.cpu.addr_abs, // update the absolute address
-      addr_rel: nes.cpu.addr_rel, // update the relative address
+      temp: nes.cpu.temp[0], // update the temporary variable
+      addr_abs: nes.cpu.addr_abs[0], // update the absolute address
+      addr_rel: nes.cpu.addr_rel[0], // update the relative address
       clock_cnt: nes.cpu.clock_count // update the clock count
     }));
   }
@@ -82,18 +90,18 @@ export default function WebGPUCanvas() {
     // update the emulation state with the current CPU state
     setEmuStage(prevState => ({
       ...prevState,
-      status_reg: nes.cpu.status, // update the status register
-      pc: nes.cpu.pc, // update the program counter
-      a_reg: nes.cpu.a, // update the accumulator register
-      x_reg: nes.cpu.x, // update the x register
-      y_reg: nes.cpu.y, // update the y register
-      stkp: nes.cpu.stkp, // update the stack pointer
-      fetched: nes.cpu.fetched, // update the fetched value
-      opcode: nes.cpu.lookup[nes.cpu.opcode].name, // update the current opcode
+      status_reg: nes.cpu.status[0], // update the status register
+      pc: nes.cpu.pc[0], // update the program counter
+      a_reg: nes.cpu.a[0], // update the accumulator register
+      x_reg: nes.cpu.x[0], // update the x register
+      y_reg: nes.cpu.y[0], // update the y register
+      stkp: nes.cpu.stkp[0], // update the stack pointer
+      fetched: nes.cpu.fetched[0], // update the fetched value
+      opcode: nes.cpu.lookup[nes.cpu.opcode[0]].name, // update the current opcode
       cycles: nes.cpu.cycles, // update the number of cycles remaining
-      temp: nes.cpu.temp, // update the temporary variable
-      addr_abs: nes.cpu.addr_abs, // update the absolute address
-      addr_rel: nes.cpu.addr_rel, // update the relative address
+      temp: nes.cpu.temp[0], // update the temporary variable
+      addr_abs: nes.cpu.addr_abs[0], // update the absolute address
+      addr_rel: nes.cpu.addr_rel[0], // update the relative address
       clock_cnt: nes.cpu.clock_count // update the clock count
     }));
 
@@ -147,7 +155,6 @@ export default function WebGPUCanvas() {
     // nes.cpu.clock();
     // nes.cpu.clock();
     // nes.cpu.clock();
-
 
 
   }
@@ -396,10 +403,8 @@ export default function WebGPUCanvas() {
 
 
 
-
-
   return (
-    <div className="lg:flex lg:space-x-5 lg:space-y-0 space-y-5 items-center justify-between">
+    <div className="lg:flex lg:space-x-5 lg:space-y-0 space-y-5 flex-start mt-5">
 
       <div className="relative flex justify-center place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
         <canvas
@@ -434,75 +439,198 @@ export default function WebGPUCanvas() {
           <br />
 
           <button className="bg-red-400 hover:bg-red-700 text-white py-2 px-4 rounded">
-            Load ROM file
+            Select ROM
           </button>
-          {" No file found... "}
+          {" No file selected... "}
           <button className="bg-green-400 hover:bg-green-700 text-white py-2 px-4 rounded">
-            Save
+            Load
           </button>
 
-          
-        </div>
+          <div className="tabs-container mt-5">
+            <Tab.Group>
+
+              <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
+
+                <Tab key="variables"
+                  className={({ selected }) =>
+                    classNames(
+                      'w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700',
+                      'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                      selected
+                        ? 'bg-white shadow'
+                        : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
+                    )
+                  }
+                >
+                  {"Variables"}
+                </Tab>
+
+                <Tab key="asm"
+                  className={({ selected }) =>
+                    classNames(
+                      'w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700',
+                      'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                      selected
+                        ? 'bg-white shadow'
+                        : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
+                    )
+                  }
+                >
+                  {"Debug"}
+                </Tab>
 
 
-        <div className="tabs-container">
+                <Tab key="disasm"
+                  className={({ selected }) =>
+                    classNames(
+                      'w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700',
+                      'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                      selected
+                        ? 'bg-white shadow'
+                        : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
+                    )
+                  }
+                >
+                  {"Disassembler"}
+                </Tab>
 
-          <ul aria-labelledby="tabs-title">
-            <li><a id="tab-1" href="#variables"> Variables </a></li>
-            <li><a id="tab-2" href="#disassembler"> Disassembler </a></li>
-            <li><a id="tab-4" href="#textures"> Textures </a></li>
-            <li><a id="tab-3" href="#settings"> Settings </a></li>
-          </ul>
+                <Tab key="settings"
+                  className={({ selected }) =>
+                    classNames(
+                      'w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700',
+                      'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                      selected
+                        ? 'bg-white shadow'
+                        : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
+                    )
+                  }
+                >
+                  {"Settings"}
+                </Tab>
 
-          <div className="tabs__panels flow">
-            <div id="variables" aria-labelledby="tab-1">
-              <p>This is some random text.1</p>
+              </Tab.List>
 
-            </div>
+              <Tab.Panels className="mt-2">
 
-            <div id="disassembler" aria-labelledby="tab-2">
-              <br />
-              Status (NOUBDIZC): {"0x" + emuState.status_reg.toString(16).toUpperCase()}
+                <Tab.Panel key="variables"
+                  className="rounded-xl bg-black p-3"
+                >
+                  Status (NOUBDIZC): {"0x" + emuState.status_reg.toString(16).toUpperCase()}
 
-              <br />A Register: {toHexExpression(emuState.a_reg)}
-              <br />X Register: {toHexExpression(emuState.x_reg)}
-              <br />Y Register: {toHexExpression(emuState.y_reg)}
-              <br />
-              Stack Pointer: {toHexExpression(emuState.stkp)}
-              <br />
-              Fetched: {toHexExpression(emuState.fetched)}
-              <br />
-              PC: {toHexExpression(emuState.pc)}
-              <br />
-              Opcode: {emuState.opcode}
-              <br />
-              Cycles: {emuState.cycles}
-              <br />
-              Temp: {toHexExpression(emuState.temp)}
-              <br />
-              Address Absolute: {toHexExpression(emuState.addr_abs)}
-              <br />
-              Address Relative: {toHexExpression(emuState.addr_rel)}
-              <br />
-              Clock Count: {emuState.clock_cnt}
+                  <br />A Register: {toHexExpression(emuState.a_reg)}
+                  <br />X Register: {toHexExpression(emuState.x_reg)}
+                  <br />Y Register: {toHexExpression(emuState.y_reg)}
+                  <br />
+                  Stack Pointer: {toHexExpression(emuState.stkp)}
+                  <br />
+                  Fetched: {toHexExpression(emuState.fetched)}
+                  <br />
+                  PC: {toHexExpression(emuState.pc)}
+                  <br />
+                  Opcode: {emuState.opcode}
+                  <br />
+                  Cycles: {emuState.cycles}
+                  <br />
+                  Temp: {toHexExpression(emuState.temp)}
+                  <br />
+                  Address Absolute: {toHexExpression(emuState.addr_abs)}
+                  <br />
+                  Address Relative: {toHexExpression(emuState.addr_rel)}
+                  <br />
+                  Clock Count: {emuState.clock_cnt}
 
-            </div>
+                </Tab.Panel>
 
-            <div id="textures" aria-labelledby="tab-3">
-              <p>This is some random text.2</p>
+                <Tab.Panel key="disasm"
+                  className="rounded-xl bg-black p-3"
+                >
 
-            </div>
+                  <Tab.Group>
+                    <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
 
-            <div id="settings" aria-labelledby="tab-4">
-              <p>This is some random text.3</p>
+                      <Tab key="Trace"
+                        className={({ selected }) =>
+                          classNames(
+                            'w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700',
+                            'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                            selected
+                              ? 'bg-white shadow'
+                              : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
+                          )
+                        }
+                      >
+                        {"Trace"}
+                      </Tab>
+                      <Tab key="Editor"
+                        className={({ selected }) =>
+                          classNames(
+                            'w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700',
+                            'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                            selected
+                              ? 'bg-white shadow'
+                              : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
+                          )
+                        }
+                      >
+                        {"Editor"}
+                      </Tab>
+                    </Tab.List>
+                  </Tab.Group>
 
-            </div>
+
+                </Tab.Panel>
+
+                <Tab.Panel key="asm"
+                  className="rounded-xl bg-black p-3"
+                >
+                  <Editor
+                    height="320px"
+                    width="100%"
+                    options={{
+                      // readOnly: true,
+                      wordWrap: "on",
+                      renderFinalNewline: "off",
+                      scrollBeyondLastLine: false,
+                      roundedSelection: true,
+                    }}
+                    defaultLanguage="javascript"
+                    theme="vs-dark"
+                    value="// First line \r\n function \r\n hello() {\n\talert('Hello world!');\n}\n// Last line"
+                    // defaultValue="
+                    //  *=$8000 
+                    //   LDX #10
+                    //   STX $0000
+                    //   LDX #3
+                    //   STX $0001
+                    //   LDY $0000
+                    //   LDA #0
+                    //   CLC
+                    //   loop
+                    //   ADC $0001
+                    //   DEY
+                    //   BNE loop
+                    //   STA $0002
+                    //   NOP
+                    //   NOP
+                    //   NOP \n
+                    // "
+                  />
+
+                </Tab.Panel>
+
+                <Tab.Panel key="settings"
+                  className="rounded-xl bg-black p-3"
+                >
+                  {"Settings...Content"}
+
+                </Tab.Panel>
+
+              </Tab.Panels>
+            </Tab.Group>
+
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }

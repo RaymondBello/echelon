@@ -16,7 +16,7 @@ export default class Bus {
 
     constructor() {
 
-        // Reset RAM content
+        // Reset RAM content, not necessary just to make sure
         for (let i = 0; i < this.ram.length; i++) {
             this.ram[i] = 0x00;
         }

@@ -18,25 +18,26 @@ enum FLAGS6502 {
 
 export default class R6502 {
 
-    IRQB = 0xFFFE;  // Interupt Vector
-    RESB = 0xFFFC;  // Reset Vector
-    NMIB = 0xFFFA;  // Non-Maskable Interrupt
+    IRQB = new Uint16Array([0xFFFE]);  // Interupt Vector
+    RESB = new Uint16Array([0xFFFC]);  // Reset Vector
+    NMIB = new Uint16Array([0xFFFA]);  // Non-Maskable Interrupt
+
 
     // R6502 Core registers
-    a = 0x00;   // Accumulator Register
-    x = 0x00;   // X Register
-    y = 0x00;   // Y Register
-    stkp = 0x00;   // Stack Pointer (points to location on bus)
-    status = 0x00;   // Status Register
-    pc = 0x0000; // Program Counter
+    a      = new Uint8Array([0x00]);   // Accumulator Register
+    x      = new Uint8Array([0x00]);   // X Register
+    y      = new Uint8Array([0x00]);   // Y Register
+    stkp   = new Uint8Array([0x00]);   // Stack Pointer (points to location on bus)
+    status = new Uint8Array([0x00]);   // Status Register
+    pc     = new Uint16Array([0x0000]);// Program Counter
 
     // Assistive variables to facilitate emulation
-    fetched = 0x00;     // Represents the working input value to the ALU
-    opcode = 0x00;      // Is the instruction byte
-    cycles = 0;         // Counts how many cycles the instruction has remaining
-    temp = 0x0000;     // A convenience variable used everywhere
-    addr_abs = 0x0000; // All used memory addresses end up in here
-    addr_rel = 0x00;   // Represents absolute address following a branch
+    fetched     = new Uint8Array([0x00]);     // Represents the working input value to the ALU
+    opcode      = new Uint8Array([0x00]);      // Is the instruction byte
+    cycles      = 0;         // Counts how many cycles the instruction has remaining
+    temp        = new Uint16Array([0x0000]);     // A convenience variable used everywhere
+    addr_abs    = new Uint16Array([0x0000]); // All used memory addresses end up in here
+    addr_rel    = new Uint8Array([0x00]);   // Represents absolute address following a branch
     clock_count = 0;   // A global accumulation of the number of clocks
 
     bus!: Bus;
@@ -79,7 +80,7 @@ export default class R6502 {
      * @return uint8_t value of status register
      */
     GetFlag(f: FLAGS6502) {
-        return ((this.status & f) > 0) ? 1 : 0;
+        return ((this.status[0] & f) > 0) ? 1 : 0;
     }
 
     /**
@@ -91,9 +92,9 @@ export default class R6502 {
     SetFlag(f: FLAGS6502, v: boolean | number)
     {
         if (v)
-            this.status |= f;
+            this.status[0] |= f;
         else
-            this.status &= ~f;
+            this.status[0] &= ~f;
     }
 
 
@@ -111,7 +112,7 @@ export default class R6502 {
      * @return uint8_t flag if an additional clock cycle is needed in this addressing mode
      */
     IMP(instance: R6502) {
-        instance.fetched = instance.a;
+        instance.fetched[0] = instance.a[0];
         return 0;
     }
 
@@ -122,7 +123,7 @@ export default class R6502 {
      * @return uint8_t flag if an additional clock cycle is needed in this addressing mode
      */
     IMM(instance: R6502) {
-        instance.addr_abs = instance.pc++;
+        instance.addr_abs[0] = instance.pc[0]++;
         return 0;
     }
 
@@ -134,9 +135,9 @@ export default class R6502 {
      * @return uint8_t flag if an additional clock cycle is needed in this addressing mode
      */
     ZP0(instance: R6502) {
-        instance.addr_abs = instance.read(instance.pc);
-        instance.pc++;
-        instance.addr_abs &= 0x00FF;
+        instance.addr_abs[0] = instance.read(instance.pc[0]);
+        instance.pc[0]++;
+        instance.addr_abs[0] &= 0x00FF;
         return 0;
     }
 
@@ -148,9 +149,9 @@ export default class R6502 {
      * @return uint8_t flag if an additional clock cycle is needed in this addressing mode
      */
     ZPX(instance: R6502) {
-        instance.addr_abs = (instance.read(instance.pc) + instance.x);
-        instance.pc++;
-        instance.addr_abs &= 0x00FF;
+        instance.addr_abs[0] = (instance.read(instance.pc[0]) + instance.x[0]);
+        instance.pc[0]++;
+        instance.addr_abs[0] &= 0x00FF;
         return 0;
     }
 
@@ -161,9 +162,9 @@ export default class R6502 {
      * @return uint8_t flag if an additional clock cycle is needed in this addressing mode
      */
     ZPY(instance: R6502) {
-        instance.addr_abs = (instance.read(instance.pc) + instance.y);
-        instance.pc++;
-        instance.addr_abs &= 0x00FF;
+        instance.addr_abs[0] = (instance.read(instance.pc[0]) + instance.y[0]);
+        instance.pc[0]++;
+        instance.addr_abs[0] &= 0x00FF;
         return 0;
     }
 
@@ -174,10 +175,10 @@ export default class R6502 {
      * @return uint8_t flag if an additional clock cycle is needed in this addressing mode
      */
     REL(instance: R6502) {
-        instance.addr_rel = instance.read(instance.pc);
-        instance.pc++;
-        if (instance.addr_rel & 0x80)
-            instance.addr_rel |= 0xFF00;
+        instance.addr_rel[0] = instance.read(instance.pc[0]);
+        instance.pc[0]++;
+        if (instance.addr_rel[0] & 0x80)
+            instance.addr_rel[0] |= 0xFF00;
         return 0;
     }
 
@@ -188,12 +189,12 @@ export default class R6502 {
      * @return uint8_t flag if an additional clock cycle is needed in this addressing mode
      */
     ABS(instance: R6502) {
-        const lo = instance.read(instance.pc);
-        instance.pc++;
-        const hi = instance.read(instance.pc);
-        instance.pc++;
+        const lo = instance.read(instance.pc[0]);
+        instance.pc[0]++;
+        const hi = instance.read(instance.pc[0]);
+        instance.pc[0]++;
 
-        instance.addr_abs = (hi << 8) | lo;
+        instance.addr_abs[0] = (hi << 8) | lo;
 
         return 0;
     }
@@ -206,15 +207,15 @@ export default class R6502 {
      * @return uint8_t flag if an additional clock cycle is needed in this addressing mode
      */
     ABX(instance: R6502) {
-        const lo = instance.read(instance.pc);
-        instance.pc++;
-        const hi = instance.read(instance.pc);
-        instance.pc++;
+        const lo = instance.read(instance.pc[0]);
+        instance.pc[0]++;
+        const hi = instance.read(instance.pc[0]);
+        instance.pc[0]++;
 
-        instance.addr_abs = (hi << 8) | lo;
-        instance.addr_abs += instance.x;
+        instance.addr_abs[0] = (hi << 8) | lo;
+        instance.addr_abs[0] += instance.x[0];
 
-        if ((instance.addr_abs & 0xFF00) != (hi << 8))
+        if ((instance.addr_abs[0] & 0xFF00) != (hi << 8))
             return 1;
         else
             return 0;
@@ -228,15 +229,15 @@ export default class R6502 {
      * @return uint8_t flag if an additional clock cycle is needed in this addressing mode
      */
     ABY(instance: R6502) {
-        const lo = instance.read(instance.pc);
-        instance.pc++;
-        const hi = instance.read(instance.pc);
-        instance.pc++;
+        const lo = instance.read(instance.pc[0]);
+        instance.pc[0]++;
+        const hi = instance.read(instance.pc[0]);
+        instance.pc[0]++;
 
-        instance.addr_abs = (hi << 8) | lo;
-        instance.addr_abs += instance.y;
+        instance.addr_abs[0] = (hi << 8) | lo;
+        instance.addr_abs[0] += instance.y[0];
 
-        if ((instance.addr_abs & 0xFF00) != (hi << 8))
+        if ((instance.addr_abs[0] & 0xFF00) != (hi << 8))
             return 1;
         else
             return 0;
@@ -249,20 +250,20 @@ export default class R6502 {
      * @return uint8_t flag if an additional clock cycle is needed in this addressing mode
      */
     IND(instance: R6502) {
-        const ptr_lo = instance.read(instance.pc);
-        instance.pc++;
-        const ptr_hi = instance.read(instance.pc);
-        instance.pc++;
+        const ptr_lo = instance.read(instance.pc[0]);
+        instance.pc[0]++;
+        const ptr_hi = instance.read(instance.pc[0]);
+        instance.pc[0]++;
 
         const ptr = (ptr_hi << 8) | ptr_lo;
 
         // Simulate page boundary hardware bug
         if (ptr_lo == 0x00FF) {
-            instance.addr_abs = (instance.read(ptr & 0xFF00) << 8) | instance.read(ptr + 0);
+            instance.addr_abs[0] = (instance.read(ptr & 0xFF00) << 8) | instance.read(ptr + 0);
         }
         else // Behave normally
         {
-            instance.addr_abs = (instance.read(ptr + 1) << 8) | instance.read(ptr + 0);
+            instance.addr_abs[0] = (instance.read(ptr + 1) << 8) | instance.read(ptr + 0);
         }
         return 0;
     }
@@ -275,13 +276,13 @@ export default class R6502 {
      * @return uint8_t flag if an additional clock cycle is needed in this addressing mode
      */
     IZX(instance: R6502) {
-        const t = instance.read(instance.pc);
-        instance.pc++;
+        const t = instance.read(instance.pc[0]);
+        instance.pc[0]++;
 
-        const lo = instance.read((t + (instance.x)) & 0x00FF);
-        const hi = instance.read((t + (instance.x + 1)) & 0x00FF);
+        const lo = instance.read((t + (instance.x[0])) & 0x00FF);
+        const hi = instance.read((t + (instance.x[0] + 1)) & 0x00FF);
 
-        instance.addr_abs = (hi << 8) | lo;
+        instance.addr_abs[0] = (hi << 8) | lo;
 
         return 0;
     }
@@ -296,16 +297,16 @@ export default class R6502 {
      * @return uint8_t flag if an additional clock cycle is needed in this addressing mode
      */
     IZY(instance: R6502) {
-        const t = this.read(this.pc);
-        this.pc++;
+        const t = this.read(this.pc[0]);
+        this.pc[0]++;
 
         const lo = this.read(t & 0x00FF);
         const hi = this.read((t + 1) & 0x00FF);
 
-        this.addr_abs = (hi << 8) | lo;
-        this.addr_abs += this.y;
+        this.addr_abs[0] = (hi << 8) | lo;
+        this.addr_abs[0] += this.y[0];
 
-        if ((this.addr_abs & 0xFF00) != (hi << 8))
+        if ((this.addr_abs[0] & 0xFF00) != (hi << 8))
             return 1;
         else
             return 0;
@@ -325,9 +326,9 @@ export default class R6502 {
      */
     AND(instance: R6502) {
         instance.fetch();
-        instance.a = instance.a & instance.fetched;
-        instance.SetFlag(FLAGS6502.Z, instance.a == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.a & 0x80);
+        instance.a[0] = instance.a[0] & instance.fetched[0];
+        instance.SetFlag(FLAGS6502.Z, instance.a[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.a[0] & 0x80);
         return 1;
     }
 
@@ -340,15 +341,15 @@ export default class R6502 {
      */
     ASL(instance: R6502) {
         instance.fetch();
-        instance.temp = instance.fetched << 1;
-        instance.SetFlag(FLAGS6502.C, (instance.temp & 0xFF00) > 0);
-        instance.SetFlag(FLAGS6502.Z, (instance.temp & 0x00FF) == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.temp & 0x80);
-        if (instance.lookup[instance.opcode].addrmode == instance.IMP) {
-            instance.a = instance.temp & 0x00FF;
+        instance.temp[0] = instance.fetched[0] << 1;
+        instance.SetFlag(FLAGS6502.C, (instance.temp[0] & 0xFF00) > 0);
+        instance.SetFlag(FLAGS6502.Z, (instance.temp[0] & 0x00FF) == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.temp[0] & 0x80);
+        if (instance.lookup[instance.opcode[0]].addrmode == instance.IMP) {
+            instance.a[0] = instance.temp[0] & 0x00FF;
         }
         else {
-            instance.write(instance.addr_abs, instance.temp & 0x00FF);
+            instance.write(instance.addr_abs[0], instance.temp[0] & 0x00FF);
         }
         return 0;
     }
@@ -362,12 +363,12 @@ export default class R6502 {
     BCC(instance: R6502) {
         if (instance.GetFlag(FLAGS6502.C) == 0) {
             instance.cycles++;
-            instance.addr_abs = instance.pc + instance.addr_rel;
+            instance.addr_abs[0] = instance.pc[0] + instance.addr_rel[0];
 
-            if ((instance.addr_abs & 0xFF00) != (instance.pc & 0xFF00)) {
+            if ((instance.addr_abs[0] & 0xFF00) != (instance.pc[0] & 0xFF00)) {
                 instance.cycles++;
             }
-            instance.pc = instance.addr_abs;
+            instance.pc[0] = instance.addr_abs[0];
         }
         return 0;
     }
@@ -381,12 +382,12 @@ export default class R6502 {
     BCS(instance: R6502) {
         if (instance.GetFlag(FLAGS6502.C) == 1) {
             instance.cycles++;
-            instance.addr_abs = instance.pc + instance.addr_rel;
+            instance.addr_abs[0] = instance.pc[0] + instance.addr_rel[0];
 
-            if ((instance.addr_abs & 0xFF00) != (instance.pc & 0xFF00)) {
+            if ((instance.addr_abs[0] & 0xFF00) != (instance.pc[0] & 0xFF00)) {
                 instance.cycles++;
             }
-            instance.pc = instance.addr_abs;
+            instance.pc[0] = instance.addr_abs[0];
         }
         return 0;
     }
@@ -400,12 +401,12 @@ export default class R6502 {
     BEQ(instance: R6502) {
         if (instance.GetFlag(FLAGS6502.Z) == 1) {
             instance.cycles++;
-            instance.addr_abs = instance.pc + instance.addr_rel;
+            instance.addr_abs[0] = instance.pc[0] + instance.addr_rel[0];
 
-            if ((instance.addr_abs & 0xFF00) != (instance.pc & 0xFF00)) {
+            if ((instance.addr_abs[0] & 0xFF00) != (instance.pc[0] & 0xFF00)) {
                 instance.cycles++;
             }
-            instance.pc = instance.addr_abs;
+            instance.pc[0] = instance.addr_abs[0];
         }
         return 0;
     }
@@ -417,10 +418,10 @@ export default class R6502 {
      */
     BIT(instance: R6502) {
         instance.fetch();
-        instance.temp = instance.a & instance.fetched;
-        instance.SetFlag(FLAGS6502.Z, (instance.temp & 0x00FF) == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.fetched & (1 << 7));
-        instance.SetFlag(FLAGS6502.V, instance.fetched & (1 << 6));
+        instance.temp[0] = instance.a[0] & instance.fetched[0];
+        instance.SetFlag(FLAGS6502.Z, (instance.temp[0] & 0x00FF) == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.fetched[0] & (1 << 7));
+        instance.SetFlag(FLAGS6502.V, instance.fetched[0] & (1 << 6));
         return 0;
     }
 
@@ -433,12 +434,12 @@ export default class R6502 {
     BMI(instance: R6502) {
         if (instance.GetFlag(FLAGS6502.N) == 1) {
             instance.cycles++;
-            instance.addr_abs = instance.pc + instance.addr_rel;
+            instance.addr_abs[0] = instance.pc[0] + instance.addr_rel[0];
 
-            if ((instance.addr_abs & 0xFF00) != (instance.pc & 0xFF00)) {
+            if ((instance.addr_abs[0] & 0xFF00) != (instance.pc[0] & 0xFF00)) {
                 instance.cycles++;
             }
-            instance.pc = instance.addr_abs;
+            instance.pc[0] = instance.addr_abs[0];
         }
         return 0;
     }
@@ -448,12 +449,12 @@ export default class R6502 {
     BNE(instance: R6502) {
         if (instance.GetFlag(FLAGS6502.Z) == 0) {
             instance.cycles++;
-            instance.addr_abs = instance.pc + instance.addr_rel;
+            instance.addr_abs[0] = instance.pc[0] + instance.addr_rel[0];
 
-            if ((instance.addr_abs & 0xFF00) != (instance.pc & 0xFF00)) {
+            if ((instance.addr_abs[0] & 0xFF00) != (instance.pc[0] & 0xFF00)) {
                 instance.cycles++;
             }
-            instance.pc = instance.addr_abs;
+            instance.pc[0] = instance.addr_abs[0];
         }
         return 0;
     }
@@ -463,12 +464,12 @@ export default class R6502 {
     BPL(instance: R6502) {
         if (instance.GetFlag(FLAGS6502.N) == 0) {
             instance.cycles++;
-            instance.addr_abs = instance.pc + instance.addr_rel;
+            instance.addr_abs[0] = instance.pc[0] + instance.addr_rel[0];
 
-            if ((instance.addr_abs & 0xFF00) != (instance.pc & 0xFF00)) {
+            if ((instance.addr_abs[0] & 0xFF00) != (instance.pc[0] & 0xFF00)) {
                 instance.cycles++;
             }
-            instance.pc = instance.addr_abs;
+            instance.pc[0] = instance.addr_abs[0];
         }
         return 0;
     }
@@ -476,20 +477,20 @@ export default class R6502 {
     // Instruction: Break\n
     // Function:    Program Sourced Interrupt
     BRK(instance: R6502) {
-        instance.pc++;
+        instance.pc[0]++;
 
         instance.SetFlag(FLAGS6502.I, 1);
-        instance.write(0x0100 + instance.stkp, (instance.pc >> 8) & 0x00FF);
-        instance.stkp--;
-        instance.write(0x0100 + instance.stkp, instance.pc & 0x00FF);
-        instance.stkp--;
+        instance.write(0x0100 + instance.stkp[0], (instance.pc[0] >> 8) & 0x00FF);
+        instance.stkp[0]--;
+        instance.write(0x0100 + instance.stkp[0], instance.pc[0] & 0x00FF);
+        instance.stkp[0]--;
 
         instance.SetFlag(FLAGS6502.B, 1);
-        instance.write(0x0100 + instance.stkp, instance.status);
-        instance.stkp--;
+        instance.write(0x0100 + instance.stkp[0], instance.status[0]);
+        instance.stkp[0]--;
         instance.SetFlag(FLAGS6502.B, 0);
 
-        instance.pc = instance.read(0xFFFE) | (instance.read(0xFFFF) << 8);
+        instance.pc[0] = instance.read(0xFFFE) | (instance.read(0xFFFF) << 8);
         return 0;
     }
 
@@ -498,12 +499,12 @@ export default class R6502 {
     BVC(instance: R6502) {
         if (instance.GetFlag(FLAGS6502.V) == 0) {
             instance.cycles++;
-            instance.addr_abs = instance.pc + instance.addr_rel;
+            instance.addr_abs[0] = instance.pc[0] + instance.addr_rel[0];
 
-            if ((instance.addr_abs & 0xFF00) != (instance.pc & 0xFF00)) {
+            if ((instance.addr_abs[0] & 0xFF00) != (instance.pc[0] & 0xFF00)) {
                 instance.cycles++;
             }
-            instance.pc = instance.addr_abs;
+            instance.pc[0] = instance.addr_abs[0];
         }
         return 0;
     }
@@ -513,12 +514,12 @@ export default class R6502 {
     BVS(instance: R6502) {
         if (instance.GetFlag(FLAGS6502.V) == 1) {
             instance.cycles++;
-            instance.addr_abs = instance.pc + instance.addr_rel;
+            instance.addr_abs[0] = instance.pc[0] + instance.addr_rel[0];
 
-            if ((instance.addr_abs & 0xFF00) != (instance.pc & 0xFF00))
+            if ((instance.addr_abs[0] & 0xFF00) != (instance.pc[0] & 0xFF00))
                 instance.cycles++;
 
-            instance.pc = instance.addr_abs;
+            instance.pc[0] = instance.addr_abs[0];
         }
         return 0;
     }
@@ -556,10 +557,10 @@ export default class R6502 {
     // Flags Out:   N, C, Z
     CMP(instance: R6502) {
         instance.fetch();
-        instance.temp = instance.a - instance.fetched;
-        instance.SetFlag(FLAGS6502.C, instance.a >= instance.fetched);
-        instance.SetFlag(FLAGS6502.Z, (instance.temp & 0x00FF) == 0x0000);
-        instance.SetFlag(FLAGS6502.N, instance.temp & 0x0080);
+        instance.temp[0] = instance.a[0] - instance.fetched[0];
+        instance.SetFlag(FLAGS6502.C, instance.a[0] >= instance.fetched[0]);
+        instance.SetFlag(FLAGS6502.Z, (instance.temp[0] & 0x00FF) == 0x0000);
+        instance.SetFlag(FLAGS6502.N, instance.temp[0] & 0x0080);
         return 1;
     }
 
@@ -568,10 +569,10 @@ export default class R6502 {
     // Flags Out:   N, C, Z
     CPX(instance: R6502) {
         instance.fetch();
-        instance.temp = instance.x - instance.fetched;
-        instance.SetFlag(FLAGS6502.C, instance.x >= instance.fetched);
-        instance.SetFlag(FLAGS6502.Z, (instance.temp & 0x00FF) == 0x0000);
-        instance.SetFlag(FLAGS6502.N, instance.temp & 0x0080);
+        instance.temp[0] = instance.x[0] - instance.fetched[0];
+        instance.SetFlag(FLAGS6502.C, instance.x[0] >= instance.fetched[0]);
+        instance.SetFlag(FLAGS6502.Z, (instance.temp[0] & 0x00FF) == 0x0000);
+        instance.SetFlag(FLAGS6502.N, instance.temp[0] & 0x0080);
         return 0;
     }
 
@@ -580,10 +581,10 @@ export default class R6502 {
     // Flags Out:   N, C, Z
     CPY(instance: R6502) {
         instance.fetch();
-        instance.temp = instance.y - instance.fetched;
-        instance.SetFlag(FLAGS6502.C, instance.y >= instance.fetched);
-        instance.SetFlag(FLAGS6502.Z, (instance.temp & 0x00FF) == 0x0000);
-        instance.SetFlag(FLAGS6502.N, instance.temp & 0x0080);
+        instance.temp[0] = instance.y[0] - instance.fetched[0];
+        instance.SetFlag(FLAGS6502.C, instance.y[0] >= instance.fetched[0]);
+        instance.SetFlag(FLAGS6502.Z, (instance.temp[0] & 0x00FF) == 0x0000);
+        instance.SetFlag(FLAGS6502.N, instance.temp[0] & 0x0080);
         return 0;
     }
 
@@ -593,10 +594,10 @@ export default class R6502 {
     // Flags Out:   N, Z
     DEC(instance: R6502) {
         instance.fetch();
-        instance.temp = instance.fetched - 1;
-        instance.write(instance.addr_abs, instance.temp & 0x00FF);
-        instance.SetFlag(FLAGS6502.Z, (instance.temp & 0x00FF) == 0x0000);
-        instance.SetFlag(FLAGS6502.N, instance.temp & 0x0080);
+        instance.temp[0] = instance.fetched[0] - 1;
+        instance.write(instance.addr_abs[0], instance.temp[0] & 0x00FF);
+        instance.SetFlag(FLAGS6502.Z, (instance.temp[0] & 0x00FF) == 0x0000);
+        instance.SetFlag(FLAGS6502.N, instance.temp[0] & 0x0080);
         return 0;
     }
 
@@ -604,9 +605,9 @@ export default class R6502 {
     // Function:    X = X - 1
     // Flags Out:   N, Z
     DEX(instance: R6502) {
-        instance.x--;
-        instance.SetFlag(FLAGS6502.Z, instance.x == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.x & 0x80);
+        instance.x[0]--;
+        instance.SetFlag(FLAGS6502.Z, instance.x[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.x[0] & 0x80);
         return 0;
     }
 
@@ -614,9 +615,9 @@ export default class R6502 {
     // Function:    Y = Y - 1
     // Flags Out:   N, Z
     DEY(instance: R6502) {
-        instance.y--;
-        instance.SetFlag(FLAGS6502.Z, instance.y == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.y & 0x80);
+        instance.y[0]--;
+        instance.SetFlag(FLAGS6502.Z, instance.y[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.y[0] & 0x80);
         return 0;
     }
 
@@ -625,9 +626,9 @@ export default class R6502 {
     // Flags Out:   N, Z
     EOR(instance: R6502) {
         instance.fetch();
-        instance.a = instance.a ^ instance.fetched;
-        instance.SetFlag(FLAGS6502.Z, instance.a == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.a & 0x80);
+        instance.a[0] = instance.a[0] ^ instance.fetched[0];
+        instance.SetFlag(FLAGS6502.Z, instance.a[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.a[0] & 0x80);
         return 1;
     }
 
@@ -636,10 +637,10 @@ export default class R6502 {
     // Flags Out:   N, Z
     INC(instance: R6502) {
         instance.fetch();
-        instance.temp = instance.fetched + 1;
-        instance.write(instance.addr_abs, instance.temp & 0x00FF);
-        instance.SetFlag(FLAGS6502.Z, (instance.temp & 0x00FF) == 0x0000);
-        instance.SetFlag(FLAGS6502.N, instance.temp & 0x0080);
+        instance.temp[0] = instance.fetched[0] + 1;
+        instance.write(instance.addr_abs[0], instance.temp[0] & 0x00FF);
+        instance.SetFlag(FLAGS6502.Z, (instance.temp[0] & 0x00FF) == 0x0000);
+        instance.SetFlag(FLAGS6502.N, instance.temp[0] & 0x0080);
         return 0;
     }
 
@@ -647,9 +648,9 @@ export default class R6502 {
     // Function:    X = X + 1
     // Flags Out:   N, Z
     INX(instance: R6502) {
-        instance.x++;
-        instance.SetFlag(FLAGS6502.Z, instance.x == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.x & 0x80);
+        instance.x[0]++;
+        instance.SetFlag(FLAGS6502.Z, instance.x[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.x[0] & 0x80);
         return 0;
     }
 
@@ -657,9 +658,9 @@ export default class R6502 {
     // Function:    Y = Y + 1
     // Flags Out:   N, Z
     INY(instance: R6502) {
-        instance.y++;
-        instance.SetFlag(FLAGS6502.Z, instance.y == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.y & 0x80);
+        instance.y[0]++;
+        instance.SetFlag(FLAGS6502.Z, instance.y[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.y[0] & 0x80);
         return 0;
     }
 
@@ -667,21 +668,21 @@ export default class R6502 {
     // Instruction: Jump To Location
     // Function:    pc = address
     JMP(instance: R6502) {
-        instance.pc = instance.addr_abs;
+        instance.pc[0] = instance.addr_abs[0];
         return 0;
     }
 
     // Instruction: Jump To Sub-Routine
     // Function:    Push current pc to stack, pc = address
     JSR(instance: R6502) {
-        instance.pc--;
+        instance.pc[0]--;
 
-        instance.write(0x0100 + instance.stkp, (instance.pc >> 8) & 0x00FF);
-        instance.stkp--;
-        instance.write(0x0100 + instance.stkp, instance.pc & 0x00FF);
-        instance.stkp--;
+        instance.write(0x0100 + instance.stkp[0], (instance.pc[0] >> 8) & 0x00FF);
+        instance.stkp[0]--;
+        instance.write(0x0100 + instance.stkp[0], instance.pc[0] & 0x00FF);
+        instance.stkp[0]--;
 
-        instance.pc = instance.addr_abs;
+        instance.pc[0] = instance.addr_abs[0];
         return 0;
     }
 
@@ -690,9 +691,9 @@ export default class R6502 {
     // Flags Out:   N, Z
     LDA(instance: R6502) {
         instance.fetch();
-        instance.a = instance.fetched;
-        instance.SetFlag(FLAGS6502.Z, instance.a == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.a & 0x80);
+        instance.a[0] = instance.fetched[0];
+        instance.SetFlag(FLAGS6502.Z, instance.a[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.a[0] & 0x80);
         return 1;
     }
 
@@ -701,9 +702,9 @@ export default class R6502 {
     // Flags Out:   N, Z
     LDX(instance: R6502) {
         instance.fetch();
-        instance.x = instance.fetched;
-        instance.SetFlag(FLAGS6502.Z, instance.x == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.x & 0x80);
+        instance.x[0] = instance.fetched[0];
+        instance.SetFlag(FLAGS6502.Z, instance.x[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.x[0] & 0x80);
         return 1;
     }
 
@@ -712,23 +713,23 @@ export default class R6502 {
     // Flags Out:   N, Z
     LDY(instance: R6502) {
         instance.fetch();
-        instance.y = instance.fetched;
-        instance.SetFlag(FLAGS6502.Z, instance.y == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.y & 0x80);
+        instance.y[0] = instance.fetched[0];
+        instance.SetFlag(FLAGS6502.Z, instance.y[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.y[0] & 0x80);
         return 1;
     }
 
     LSR(instance: R6502) {
         instance.fetch();
-        instance.SetFlag(FLAGS6502.C, instance.fetched & 0x0001);
-        instance.temp = instance.fetched >> 1;
-        instance.SetFlag(FLAGS6502.Z, (instance.temp & 0x00FF) == 0x0000);
-        instance.SetFlag(FLAGS6502.N, instance.temp & 0x0080);
-        if (instance.lookup[instance.opcode].addrmode == instance.IMP) {
-            instance.a = instance.temp & 0x00FF;
+        instance.SetFlag(FLAGS6502.C, instance.fetched[0] & 0x0001);
+        instance.temp[0] = instance.fetched[0] >> 1;
+        instance.SetFlag(FLAGS6502.Z, (instance.temp[0] & 0x00FF) == 0x0000);
+        instance.SetFlag(FLAGS6502.N, instance.temp[0] & 0x0080);
+        if (instance.lookup[instance.opcode[0]].addrmode == instance.IMP) {
+            instance.a[0] = instance.temp[0] & 0x00FF;
         }
         else {
-            instance.write(instance.addr_abs, instance.temp & 0x00FF);
+            instance.write(instance.addr_abs[0], instance.temp[0] & 0x00FF);
         }
         return 0;
     }
@@ -739,7 +740,7 @@ export default class R6502 {
         // based on https://wiki.nesdev.com/w/index.php/CPU_unofficial_opcodes
         // and will add more based on game compatibility, and ultimately
         // I'd like to cover all illegal opcodes too
-        switch (instance.opcode) {
+        switch (instance.opcode[0]) {
             case 0x1C:
             case 0x3C:
             case 0x5C:
@@ -757,9 +758,9 @@ export default class R6502 {
     ORA(instance: R6502)
     {
         instance.fetch();
-        instance.a = instance.a | instance.fetched;
-        instance.SetFlag(FLAGS6502.Z, instance.a == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.a & 0x80);
+        instance.a[0] = instance.a[0] | instance.fetched[0];
+        instance.SetFlag(FLAGS6502.Z, instance.a[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.a[0] & 0x80);
         return 1;
     }
 
@@ -767,8 +768,8 @@ export default class R6502 {
     // Function:    A -> stack
     PHA(instance: R6502)
     {
-        instance.write(0x0100 + instance.stkp, instance.a);
-        instance.stkp--;
+        instance.write(0x0100 + instance.stkp[0], instance.a[0]);
+        instance.stkp[0]--;
         return 0;
     }
 
@@ -777,10 +778,10 @@ export default class R6502 {
     // Note:        Break flag is set to 1 before push
     PHP(instance: R6502)
     {
-        instance.write(0x0100 + instance.stkp, instance.status | FLAGS6502.B | FLAGS6502.U);
+        instance.write(0x0100 + instance.stkp[0], instance.status[0] | FLAGS6502.B | FLAGS6502.U);
         instance.SetFlag(FLAGS6502.B, 0);
         instance.SetFlag(FLAGS6502.U, 0);
-        instance.stkp--;
+        instance.stkp[0]--;
         return 0;
     }
 
@@ -789,10 +790,10 @@ export default class R6502 {
     // Flags Out:   N, Z
     PLA(instance: R6502)
     {
-        instance.stkp++;
-        instance.a = instance.read(0x0100 + instance.stkp);
-        instance.SetFlag(FLAGS6502.Z, instance.a == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.a & 0x80);
+        instance.stkp[0]++;
+        instance.a[0] = instance.read(0x0100 + instance.stkp[0]);
+        instance.SetFlag(FLAGS6502.Z, instance.a[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.a[0] & 0x80);
         return 0;
     }
 
@@ -800,8 +801,8 @@ export default class R6502 {
     // Function:    Status <- stack
     PLP(instance: R6502)
     {
-        instance.stkp++;
-        instance.status = instance.read(0x0100 + instance.stkp);
+        instance.stkp[0]++;
+        instance.status[0] = instance.read(0x0100 + instance.stkp[0]);
         instance.SetFlag(FLAGS6502.U, 1);
         return 0;
     }
@@ -809,16 +810,16 @@ export default class R6502 {
     ROL(instance: R6502)
     {
         instance.fetch();
-        instance.temp = instance.fetched << 1 | instance.GetFlag(FLAGS6502.C);
-        instance.SetFlag(FLAGS6502.C, instance.temp & 0xFF00);
-        instance.SetFlag(FLAGS6502.Z, (instance.temp & 0x00FF) == 0x0000);
-        instance.SetFlag(FLAGS6502.N, instance.temp & 0x0080);
-        if (instance.lookup[instance.opcode].addrmode == instance.IMP) {
-            instance.a = instance.temp & 0x00FF;
+        instance.temp[0] = instance.fetched[0] << 1 | instance.GetFlag(FLAGS6502.C);
+        instance.SetFlag(FLAGS6502.C, instance.temp[0] & 0xFF00);
+        instance.SetFlag(FLAGS6502.Z, (instance.temp[0] & 0x00FF) == 0x0000);
+        instance.SetFlag(FLAGS6502.N, instance.temp[0] & 0x0080);
+        if (instance.lookup[instance.opcode[0]].addrmode == instance.IMP) {
+            instance.a[0] = instance.temp[0] & 0x00FF;
         }
         else {
 
-            instance.write(instance.addr_abs, instance.temp & 0x00FF);
+            instance.write(instance.addr_abs[0], instance.temp[0] & 0x00FF);
         }
         return 0;
     }
@@ -826,41 +827,41 @@ export default class R6502 {
     ROR(instance: R6502)
     {
         instance.fetch();
-        instance.temp = instance.GetFlag(FLAGS6502.C) << 7 | (instance.fetched >> 1);
-        instance.SetFlag(FLAGS6502.C, instance.fetched & 0x01);
-        instance.SetFlag(FLAGS6502.Z, (instance.temp & 0x00FF) == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.temp & 0x0080);
-        if (instance.lookup[instance.opcode].addrmode == instance.IMP) {
-            instance.a = instance.temp & 0x00FF;
+        instance.temp[0] = instance.GetFlag(FLAGS6502.C) << 7 | (instance.fetched[0] >> 1);
+        instance.SetFlag(FLAGS6502.C, instance.fetched[0] & 0x01);
+        instance.SetFlag(FLAGS6502.Z, (instance.temp[0] & 0x00FF) == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.temp[0] & 0x0080);
+        if (instance.lookup[instance.opcode[0]].addrmode == instance.IMP) {
+            instance.a[0] = instance.temp[0] & 0x00FF;
         }
         else {
-            instance.write(instance.addr_abs, instance.temp & 0x00FF);
+            instance.write(instance.addr_abs[0], instance.temp[0] & 0x00FF);
         }
         return 0;
     }
 
     RTI(instance: R6502)
     {
-        instance.stkp++;
-        instance.status = instance.read(0x0100 + instance.stkp);
-        instance.status &= ~FLAGS6502.B;
-        instance.status &= ~FLAGS6502.U;
+        instance.stkp[0]++;
+        instance.status[0] = instance.read(0x0100 + instance.stkp[0]);
+        instance.status[0] &= ~FLAGS6502.B;
+        instance.status[0] &= ~FLAGS6502.U;
 
-        instance.stkp++;
-        instance.pc = instance.read(0x0100 + instance.stkp);
-        instance.stkp++;
-        instance.pc |= instance.read(0x0100 + instance.stkp) << 8;
+        instance.stkp[0]++;
+        instance.pc[0] = instance.read(0x0100 + instance.stkp[0]);
+        instance.stkp[0]++;
+        instance.pc[0] |= instance.read(0x0100 + instance.stkp[0]) << 8;
         return 0;
     }
 
     RTS(instance: R6502)
     {
-        instance.stkp++;
-        instance.pc = instance.read(0x0100 + instance.stkp);
-        instance.stkp++;
-        instance.pc |= instance.read(0x0100 + instance.stkp) << 8;
+        instance.stkp[0]++;
+        instance.pc[0] = instance.read(0x0100 + instance.stkp[0]);
+        instance.stkp[0]++;
+        instance.pc[0] |= instance.read(0x0100 + instance.stkp[0]) << 8;
 
-        instance.pc++;
+        instance.pc[0]++;
         return 0;
     }
 
@@ -892,7 +893,7 @@ export default class R6502 {
     // Function:    M = A
     STA(instance: R6502)
     {
-        instance.write(instance.addr_abs, instance.a);
+        instance.write(instance.addr_abs[0], instance.a[0]);
         return 0;
     }
 
@@ -900,7 +901,7 @@ export default class R6502 {
     // Function:    M = X
     STX(instance: R6502)
     {
-        instance.write(instance.addr_abs, instance.x);
+        instance.write(instance.addr_abs[0], instance.x[0]);
         return 0;
     }
 
@@ -908,7 +909,7 @@ export default class R6502 {
     // Function:    M = Y
     STY(instance: R6502)
     {
-        instance.write(instance.addr_abs, instance.y);
+        instance.write(instance.addr_abs[0], instance.y[0]);
         return 0;
     }
 
@@ -918,8 +919,8 @@ export default class R6502 {
     TAX(instance: R6502)
     {
         instance.x = instance.a;
-        instance.SetFlag(FLAGS6502.Z, instance.x == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.x & 0x80);
+        instance.SetFlag(FLAGS6502.Z, instance.x[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.x[0] & 0x80);
         return 0;
     }
 
@@ -929,8 +930,8 @@ export default class R6502 {
     TAY(instance: R6502)
     {
         instance.y = instance.a;
-        instance.SetFlag(FLAGS6502.Z, instance.y == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.y & 0x80);
+        instance.SetFlag(FLAGS6502.Z, instance.y[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.y[0] & 0x80);
         return 0;
     }
 
@@ -939,9 +940,9 @@ export default class R6502 {
     // Flags Out:   N, Z
     TSX(instance: R6502)
     {
-        instance.x = instance.stkp;
-        instance.SetFlag(FLAGS6502.Z, instance.x == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.x & 0x80);
+        instance.x[0] = instance.stkp[0];
+        instance.SetFlag(FLAGS6502.Z, instance.x[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.x[0] & 0x80);
         return 0;
     }
 
@@ -951,8 +952,8 @@ export default class R6502 {
     TXA(instance: R6502)
     {
         instance.a = instance.x;
-        instance.SetFlag(FLAGS6502.Z, instance.a == 0x00);
-        instance.SetFlag(FLAGS6502.N, instance.a & 0x80);
+        instance.SetFlag(FLAGS6502.Z, instance.a[0] == 0x00);
+        instance.SetFlag(FLAGS6502.N, instance.a[0] & 0x80);
         return 0;
     }
 
@@ -960,7 +961,7 @@ export default class R6502 {
     // Function:    stack pointer = X
     TXS(instance: R6502)
     {
-        instance.stkp = instance.x;
+        instance.stkp[0] = instance.x[0];
         return 0;
     }
 
@@ -970,8 +971,8 @@ export default class R6502 {
     TYA(instance: R6502)
     {
         instance.a = instance.y;
-        instance.SetFlag(FLAGS6502.Z, instance.a == 0x00);
-        this.SetFlag(FLAGS6502.N, this.a & 0x80);
+        instance.SetFlag(FLAGS6502.Z, instance.a[0] == 0x00);
+        this.SetFlag(FLAGS6502.N, this.a[0] & 0x80);
         return 0;
     }
 
@@ -1049,22 +1050,22 @@ export default class R6502 {
 
         // Add is performed in 16-bit domain for emulation to capture any
         // carry bit, which will exist in bit 8 of the 16-bit word
-        instance.temp = instance.a + instance.fetched + instance.GetFlag(FLAGS6502.C);
+        instance.temp[0] = instance.a[0] + instance.fetched[0] + instance.GetFlag(FLAGS6502.C);
 
         // The carry flag out exists in the high byte bit 0
-        instance.SetFlag(FLAGS6502.C, instance.temp > 255);
+        instance.SetFlag(FLAGS6502.C, instance.temp[0] > 255);
 
         // The Zero flag is set if the result is 0
-        instance.SetFlag(FLAGS6502.Z, (instance.temp & 0x00FF) == 0);
+        instance.SetFlag(FLAGS6502.Z, (instance.temp[0] & 0x00FF) == 0);
 
         // The signed Overflow flag is set based on all that up there! :D
-        instance.SetFlag(FLAGS6502.V, (~(instance.a ^ instance.fetched) & (instance.a ^ instance.temp)) & 0x0080);
+        instance.SetFlag(FLAGS6502.V, (~(instance.a[0] ^ instance.fetched[0]) & (instance.a[0] ^ instance.temp[0])) & 0x0080);
 
         // The negative flag is set to the most significant bit of the result
-        instance.SetFlag(FLAGS6502.N, instance.temp & 0x80);
+        instance.SetFlag(FLAGS6502.N, instance.temp[0] & 0x80);
 
         // Load the result into the accumulator (it's 8-bit dont forget!)
-        instance.a = instance.temp & 0x00FF;
+        instance.a[0] = instance.temp[0] & 0x00FF;
 
         // This instruction has the potential to require an additional clock cycle
         return 1;
@@ -1102,15 +1103,15 @@ export default class R6502 {
         // Operating in 16-bit domain to capture carry out
 
         // We can invert the bottom 8 bits with bitwise xor
-        const value = (instance.fetched) ^ 0x00FF;
+        const value = (instance.fetched[0]) ^ 0x00FF;
 
         // Notice this is exactly the same as addition from here!
-        instance.temp = instance.a + value + instance.GetFlag(FLAGS6502.C);
-        instance.SetFlag(FLAGS6502.C, instance.temp & 0xFF00);
-        instance.SetFlag(FLAGS6502.Z, ((instance.temp & 0x00FF) == 0));
-        instance.SetFlag(FLAGS6502.V, (instance.temp ^ instance.a) & (instance.temp ^ value) & 0x0080);
-        instance.SetFlag(FLAGS6502.N, instance.temp & 0x0080);
-        instance.a = instance.temp & 0x00FF;
+        instance.temp[0] = instance.a[0] + value + instance.GetFlag(FLAGS6502.C);
+        instance.SetFlag(FLAGS6502.C, instance.temp[0] & 0xFF00);
+        instance.SetFlag(FLAGS6502.Z, ((instance.temp[0] & 0x00FF) == 0));
+        instance.SetFlag(FLAGS6502.V, (instance.temp[0] ^ instance.a[0]) & (instance.temp[0] ^ value) & 0x0080);
+        instance.SetFlag(FLAGS6502.N, instance.temp[0] & 0x0080);
+        instance.a[0] = instance.temp[0] & 0x00FF;
         return 1;
     }
 
@@ -1133,20 +1134,20 @@ export default class R6502 {
     clock() {
         // the entire clock computation is performed in one go.
         if (this.cycles == 0) {
-            this.opcode = this.read(this.pc);
+            this.opcode[0] = this.read(this.pc[0]);
 
 
             // set the unused status flag bit to 1
             this.SetFlag(FLAGS6502.U, true);
 
             // Increment the program counter
-            this.pc += 1;
+            this.pc[0] += 1;
 
             // get starting number of clock cycles
-            this.cycles = this.lookup[this.opcode].cycles;
+            this.cycles = this.lookup[this.opcode[0]].cycles;
 
-            const add_cycle1 = this.lookup[this.opcode].addrmode(this);
-            const add_cycle2 = this.lookup[this.opcode].operate(this);
+            const add_cycle1 = this.lookup[this.opcode[0]].addrmode(this);
+            const add_cycle2 = this.lookup[this.opcode[0]].operate(this);
 
             this.cycles += (add_cycle1 & add_cycle2);
 
@@ -1169,26 +1170,26 @@ export default class R6502 {
      */
     reset() {
         // address to set program counter to
-        this.addr_abs = this.RESB;
+        this.addr_abs[0] = this.RESB[0];
 
-        const lo = this.read(this.addr_abs);
-        const hi = this.read(this.addr_abs + 1);
+        const lo = this.read(this.addr_abs[0]);
+        const hi = this.read(this.addr_abs[0] + 1);
 
         // set program counter
-        this.pc = (hi << 8) | lo;
-        console.log("Reset Requested. PC = ", this.toHex(this.pc));
+        this.pc[0] = (hi << 8) | lo;
+        console.log("Reset Requested. PC = ", this.toHex(this.pc[0]));
 
         // reset core registers
-        this.a = 0;
-        this.x = 0;
-        this.y = 0;
-        this.stkp = 0xFD;
-        this.status = 0x00 | FLAGS6502.U;
+        this.a[0] = 0;
+        this.x[0] = 0;
+        this.y[0] = 0;
+        this.stkp[0] = 0xFD;
+        this.status[0] = 0x00 | FLAGS6502.U;
 
         // clear all emulation variables
-        this.addr_rel = 0x0000;
-        this.addr_abs = 0x0000;
-        this.fetched = 0x00;
+        this.addr_rel[0] = 0x0000;
+        this.addr_abs[0] = 0x0000;
+        this.fetched[0] = 0x00;
 
         // Reset takes 8 cycles
         this.cycles = 8;
@@ -1214,23 +1215,23 @@ export default class R6502 {
         // check if interupts are allowed
         if (this.GetFlag(FLAGS6502.I) == 0) {
             // Push the program counter to the stack. It's 16-bits dont forget so that takes two pushes
-            this.write(0x0100 + this.stkp, (this.pc >> 8) & 0x00FF);
-            this.stkp--;
-            this.write(0x0100 + this.stkp, this.pc & 0x00FF);
-            this.stkp--;
+            this.write(0x0100 + this.stkp[0], (this.pc[0] >> 8) & 0x00FF);
+            this.stkp[0]--;
+            this.write(0x0100 + this.stkp[0], this.pc[0] & 0x00FF);
+            this.stkp[0]--;
 
             // Then Push the status register to the stack
             this.SetFlag(FLAGS6502.B, false);
             this.SetFlag(FLAGS6502.U, true);
             this.SetFlag(FLAGS6502.I, true);
-            this.write(0x0100 + this.stkp, this.status);
-            this.stkp--;
+            this.write(0x0100 + this.stkp[0], this.status[0]);
+            this.stkp[0]--;
 
             // Read new program counter location from fixed address
-            this.addr_abs = this.IRQB;
-            const lo = this.read(this.addr_abs + 0);
-            const hi = this.read(this.addr_abs + 1);
-            this.pc = (hi << 8) | lo;
+            this.addr_abs[0] = this.IRQB[0];
+            const lo = this.read(this.addr_abs[0] + 0);
+            const hi = this.read(this.addr_abs[0] + 1);
+            this.pc[0] = (hi << 8) | lo;
 
             // IRQs take time
             this.cycles = 7;
@@ -1243,24 +1244,24 @@ export default class R6502 {
      * but reads the new program counter address form location NMIB vector.
      */
     nmi() {
-        this.write(0x0100 + this.stkp, (this.pc >> 8) & 0x00FF);
-        this.stkp--;
-        this.write(0x0100 + this.stkp, this.pc & 0x00FF);
-        this.stkp--;
+        this.write(0x0100 + this.stkp[0], (this.pc[0] >> 8) & 0x00FF);
+        this.stkp[0]--;
+        this.write(0x0100 + this.stkp[0], this.pc[0] & 0x00FF);
+        this.stkp[0]--;
 
         this.SetFlag(FLAGS6502.B, false);
         this.SetFlag(FLAGS6502.U, true);
         this.SetFlag(FLAGS6502.I, true);
-        this.write(0x0100 + this.stkp, this.status);
-        this.stkp--;
+        this.write(0x0100 + this.stkp[0], this.status[0]);
+        this.stkp[0]--;
 
         // set address to NMIB
-        this.addr_abs = this.NMIB;
-        const lo = this.read(this.addr_abs + 0);
-        const hi = this.read(this.addr_abs + 1);
+        this.addr_abs[0] = this.NMIB[0];
+        const lo = this.read(this.addr_abs[0] + 0);
+        const hi = this.read(this.addr_abs[0] + 1);
 
         // set program conter location point to NMIB vector location
-        this.pc = (hi << 8) | lo;
+        this.pc[0] = (hi << 8) | lo;
 
         this.cycles = 8;
     }
@@ -1274,11 +1275,11 @@ export default class R6502 {
      */
     fetch() {
 
-        if (!(this.lookup[this.opcode].addrmode == this.IMP)) {
-            this.fetched = this.read(this.addr_abs);
+        if (!(this.lookup[this.opcode[0]].addrmode == this.IMP)) {
+            this.fetched[0] = this.read(this.addr_abs[0]);
         }
 
-        return this.fetched;
+        return this.fetched[0];
     }
 
     ///////////////HELPER FUNCTIONS ////////////////
