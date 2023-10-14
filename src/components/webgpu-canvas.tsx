@@ -588,32 +588,31 @@ export default function WebGPUCanvas() {
                     width="100%"
                     options={{
                       // readOnly: true,
-                      wordWrap: "on",
+                      wordWrap: "off",
                       renderFinalNewline: "off",
                       scrollBeyondLastLine: false,
                       roundedSelection: true,
+                      fontSize: 16,
                     }}
-                    defaultLanguage="javascript"
+                    defaultLanguage="c"
                     theme="vs-dark"
-                    value="// First line \r\n function \r\n hello() {\n\talert('Hello world!');\n}\n// Last line"
-                    // defaultValue="
-                    //  *=$8000 
-                    //   LDX #10
-                    //   STX $0000
-                    //   LDX #3
-                    //   STX $0001
-                    //   LDY $0000
-                    //   LDA #0
-                    //   CLC
-                    //   loop
-                    //   ADC $0001
-                    //   DEY
-                    //   BNE loop
-                    //   STA $0002
-                    //   NOP
-                    //   NOP
-                    //   NOP \n
-                    // "
+                    value={String.raw`*=$8000 
+LDX #10
+STX $0000
+LDX #3
+STX $0001
+LDY $0000
+LDA #0
+CLC
+loop
+ADC $0001
+DEY
+BNE loop
+STA $0002
+NOP
+NOP
+NOP`
+                    }
                   />
 
                 </Tab.Panel>
