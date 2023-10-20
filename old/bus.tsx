@@ -1,4 +1,4 @@
-import R6502 from "@/components/r6502";
+import R6502 from "./r6502";
 
 
 export default class Bus {

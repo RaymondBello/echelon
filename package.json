@@ -11,12 +11,14 @@
   "dependencies": {
     "@headlessui/react": "^1.7.17",
     "@monaco-editor/react": "^4.6.0",
+    "jquery": "^3.7.1",
     "next": "13.5.4",
     "react": "^18",
     "react-dom": "^18",
     "swr": "^2.2.4"
   },
   "devDependencies": {
+    "@types/jquery": "^3.5.24",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

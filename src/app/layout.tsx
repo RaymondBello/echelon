@@ -2,10 +2,10 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Inter, AR_One_Sans } from 'next/font/google'
 
-const inter = AR_One_Sans({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'WebGPU 6502 CPU',
+  title: 'Echelon',
   description: 'By Ray © 2023',
 }
 

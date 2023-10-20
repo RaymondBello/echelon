@@ -233,7 +233,7 @@ export default function WebGPUCanvas() {
       });
 
       // Write the vertices data into the buffer
-      device.queue.writeBuffer(vertexBuffer, /*bufferOffset=*/ 0, vertices);
+      device.queue.writeBuffer(vertexBuffer, 0, vertices);
 
 
       // Create a uniform buffer that describes the grid.
@@ -587,7 +587,7 @@ export default function WebGPUCanvas() {
                     height="320px"
                     width="100%"
                     options={{
-                      // readOnly: true,
+                      readOnly: true,
                       wordWrap: "off",
                       renderFinalNewline: "off",
                       scrollBeyondLastLine: false,
@@ -596,6 +596,7 @@ export default function WebGPUCanvas() {
                     }}
                     defaultLanguage="c"
                     theme="vs-dark"
+                    line={10}
                     value={String.raw`*=$8000 
 LDX #10
 STX $0000

@@ -1,5 +1,5 @@
 
-import Bus from "@/components/bus";
+import Bus from "./bus";
 
 
 
