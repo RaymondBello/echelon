@@ -1,52 +1,46 @@
-// import { Renderer } from "../view/renderer";
+import { Renderer } from "../view/Renderer";
 // import { Scene } from "../model/scene";
-import $ from "jquery";
 
+// Class App definition
 export default class App {
 
+    // Class properties
     canvas: HTMLCanvasElement;
-
-
+    renderer: Renderer;
+    currTime: number;
+    prevTime: number;
+    running: boolean;
+    
+    // Class constructor
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
-
-        // Instantiate and initialize Renderer
-        // this.renderer = new Renderer(canvas);
-        // this.renderer.Initialize();
-
-        // Create Scene
-        // this.scene = new Scene();
-
-        // this.keyLabel = <HTMLElement>document.getElementById("key-label");
-        // this.mouseXLabel = <HTMLElement>document.getElementById("mouse-x-label");
-        // this.mouseYLabel = <HTMLElement>document.getElementById("mouse-y-label");
-        // $(document).on("keypress", (event) => {
-        //     this.handle_keypress(event);
-        // });
-        // $(document).on("mousemove", (event) => {
-        //     this.handle_mouse_move(event);
-        // });
+        this.currTime = 0;
+        this.prevTime = 0;
+        this.running = false;
     }
 
-    run = () => {
-        var running: boolean = true;
+    // Initialization method
+    init() {
+        this.renderer = new Renderer(this.canvas)
+        this.running = true
+    }
 
-        // this.scene.update();
+    // Run method
+    run() {
+        
+        // Requesting animation frame
+        requestAnimationFrame(this.run.bind(this));
 
-        // this.renderer.render(this.scene.get_player(), this.scene.get_triangles());
+        // Calculating time difference
+        const currTime = performance.now();
+        const delta = currTime - this.prevTime;
 
-
-        if (running) {
-            requestAnimationFrame(this.run);
+        // Updating renderer if running
+        if (this.running) {
+            this.renderer.update(delta)
         }
-    }
 
-    handle_keypress(event: JQuery.KeyPressEvent) {
-        // this.keyLabel.innerText = event.code;
-    }
-
-    handle_mouse_move(event: JQuery.MouseMoveEvent) {
-        // this.mouseXLabel.innerText = event.screenX.toString();
-        // this.mouseYLabel.innerText = event.screenY.toString();
+        // Updating previous time
+        this.prevTime = currTime;
     }
 }
