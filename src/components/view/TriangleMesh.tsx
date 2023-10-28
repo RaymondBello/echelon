@@ -3,7 +3,7 @@
 export class TriangleMesh {
 
 
-    constructor(device: GPUDevice) {
+    // constructor(device: GPUDevice) {
 
-    }
+    // }
 }

@@ -16,28 +16,23 @@ import {
     Color,
     AnimationMixer,
     AnimationAction,
-    LoadingManager
+  LoadingManager,
+  SkeletonHelper
 } from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { CharacterControllerInput } from './CharacterControllerInput';
-import { CharacterFSM } from './CharacterFSM';
-import { FiniteStateMachine } from '../utils/FiniteStateMachine';
-import { IdleState, WalkState } from '../utils/States';
+import { FSMAnimation, FiniteStateMachine } from '../utils/FiniteStateMachine';
+import { IdleState } from '@/components/utils/states/IdleState';
+import { WalkState } from '@/components/utils/states/WalkState';
+import { RunState } from '@/components/utils/states/RunState';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import Stats from 'three/addons/libs/stats.module.js';
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
-export class CharacterControllerProxy {
-
-    animations: any;
-
-    constructor(animations: any) {
-        this.animations = animations;
-        // console.log(this.animations)
-    }
-
-    getAnimations() {
-        return this.animations;
-    }
-
-};
+let new_variable = "Empty global";
+let idleAction: AnimationAction, walkAction: AnimationAction, runAction: AnimationAction;
+let actions = [];
+let previousState: string;
 
 
 export class CharacterController {
@@ -51,7 +46,7 @@ export class CharacterController {
     acceleration: Vector3;
     position: Vector3;
 
-    animations: { [key: string]: {} };
+  animations: { [key: string]: FSMAnimation } = {}
 
     input: CharacterControllerInput;
     mixer: AnimationMixer;
@@ -71,14 +66,13 @@ export class CharacterController {
     }) {
         this.params = params;
         this.deceleration = new Vector3(-0.0005, -0.0001, -5.0);
-        this.acceleration = new Vector3(1, 0.25, 45.0);
+      this.acceleration = new Vector3(1, 0.25, 59.0);
         this.velocity = new Vector3(0, 0, 0);
         this.position = new Vector3();
 
         this.animations = {};
 
-        this.input = new CharacterControllerInput();
-        // this.stateMachine = new CharacterFSM(this.animations);
+      this.input = new CharacterControllerInput();
 
         this.stateMachine = new FiniteStateMachine();
         this.stateMachine.addState("idle", new IdleState(this.stateMachine));
@@ -88,71 +82,50 @@ export class CharacterController {
         this.loadModels();
     }
 
-    loadModels() {
-      const loader = new FBXLoader();
+  loadModels() {
 
-      loader.load("/models/mremireh_o_desbiens.fbx", (fbx) => {
-        // loader.load('/models/anim/Walking.fbx', (fbx) => {
-        fbx.scale.setScalar(0.05);
-        fbx.traverse((c) => {
-          c.castShadow = true;
-          c.receiveShadow = true;
-        });
+    const loader = new GLTFLoader()
+    loader.load("/models/Soldier.glb", (gltf) => {
 
-        this.target = fbx;
+        gltf.scene.scale.set(7, 7, 7);
+        this.target = gltf.scene;
+
+        console.log(this.target)
         this.params.scene.add(this.target);
+
+        this.target.traverse((object: any) => {
+          if (object.isMesh) object.castShadow = true;
+        })
+
+        const skeleton = new SkeletonHelper(this.target);
+        skeleton.visible = false;
+        this.params.scene.add(skeleton);
+
+        const animations = gltf.animations;
         this.mixer = new AnimationMixer(this.target);
 
-        this.manager = new LoadingManager();
-        this.manager.onLoad = () => {
-          this.stateMachine.SetState("idle");
-        };
+        idleAction = this.mixer.clipAction(animations[0]);
+        walkAction = this.mixer.clipAction(animations[3]);
+        runAction = this.mixer.clipAction(animations[1]);
 
-        const onLoad = (animName: string, anim: any) => {
-          const clip = anim.animations[0];
-          const action = this.mixer.clipAction(clip);
+        this.stateMachine.addAnimation("idle", { action: idleAction, clip: animations[0] })
+        this.stateMachine.addAnimation("walk", { action: walkAction, clip: animations[3] })
+        this.stateMachine.addAnimation("run", { action: runAction, clip: animations[1] })
 
-          this.animations[animName] = {
-            clip: clip,
-            action: action,
-          };
+        actions = [idleAction, walkAction, runAction];
 
-          this.stateMachine.addAnimation(animName, {
-            clip: clip,
-            action: action,
-          });
+        this.stateMachine.SetState('idle');
+        walkAction.enabled = false;
+        runAction.enabled = false;
+        idleAction.enabled = true;
 
-          if (animName === "idle") {
-            //   this.stateMachine.animations['idle'].action.play();
-            //   this.stateMachine.Update(1, this.input)
-            //   action.play();
-            console.log("im here");
-          }
-        };
-
-        const loader = new FBXLoader(this.manager);
-        loader.load("/models/anim/walk.fbx", (a) => {
-          onLoad("walk", a);
-        });
-        loader.load("/models/anim/run.fbx", (a) => {
-          onLoad("run", a);
-        });
-        loader.load("/models/anim/idle.fbx", (a) => {
-          onLoad("idle", a);
-        });
       });
 
-      console.log(this.stateMachine.animations);
-      console.log(this.stateMachine.states);
-        // this.stateMachine.animations['idle'].action.play();
-
-      // loader.load('/models/anim/dance.fbx', (a) => { onLoad('dance', a); });
-      // loader.load('/models/anim/Walking.fbx', (a) => { onLoad('walking', a); });
     }
 
     update(timeElapsedMilli: number) {
         if (!this.target) {
-            return;
+          return;
         }
 
         const timeInSeconds = timeElapsedMilli / 1000;
@@ -187,8 +160,9 @@ export class CharacterController {
         }
 
         if (this.input.keys.forward) {
-            velocity.z += acc.z * timeInSeconds;
+          velocity.z += acc.z * timeInSeconds;
         }
+
         if (this.input.keys.backward) {
             velocity.z -= acc.z * timeInSeconds;
         }
@@ -214,7 +188,7 @@ export class CharacterController {
         const oldPosition = new Vector3();
         oldPosition.copy(controlObject.position);
 
-        const forward = new Vector3(0, 0, 1);
+      const forward = new Vector3(0, 0, -1);
         forward.applyQuaternion(controlObject.quaternion);
         forward.normalize();
 
@@ -231,13 +205,8 @@ export class CharacterController {
         oldPosition.copy(controlObject.position);
 
         if (this.mixer) {
-            this.mixer.update(timeInSeconds);
+          this.mixer.update(timeInSeconds);
         }
 
-        // if (this.animations && this.stateMachine.currentState?.Name) {
-        // console.log(this.stateMachine.currentState.Name);
-        // console.log(this.animations[this.stateMachine.currentState.Name].action);
-        // this.animations[this.stateMachine.currentState.Name].action.play();
-        // }
     }
 }

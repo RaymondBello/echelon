@@ -79,7 +79,7 @@ export class Renderer{
         document.addEventListener('mozpointerlockerror', this.pointerLockError, false);
         document.addEventListener('webkitpointerlockerror', this.pointerLockError, false);
 
-        window.addEventListener('resize', this.onWindowResize, false);
+        window.addEventListener('resize', this.onWindowResize.bind(this), false);
 
 
         gfxElement?.addEventListener('click', (event) => {
@@ -92,7 +92,7 @@ export class Renderer{
     createAssets() {
 
         // Set the field of view for the camera
-        const fieldOfView = 90;
+        const fieldOfView = 110;
 
         // Create Camera & Scene
         this.camera = new PerspectiveCamera(fieldOfView, window.innerWidth / window.innerHeight, 1, 1000);
@@ -173,7 +173,7 @@ export class Renderer{
     }
 
     onWindowResize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
+        // this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
         this.engine.setSize(window.innerWidth, window.innerHeight);
     }

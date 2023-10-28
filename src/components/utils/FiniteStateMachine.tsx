@@ -1,7 +1,7 @@
-import { CharacterControllerInput } from "../control/CharacterControllerInput";
-import { State } from "./States";
+import { CharacterControllerInput } from "@/components/control/CharacterControllerInput";
+import { State } from "@/components/utils/states/State";
 
-type FSMAnimation = {
+export type FSMAnimation = {
   clip: any;
   action: any;
 };
