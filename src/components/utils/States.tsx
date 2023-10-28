@@ -27,7 +27,7 @@ export class DanceState extends State {
     constructor(parent: any) {
         super(parent);
 
-        // this.parent = parent;
+        this.parent = parent;
         this.Name = 'dance';
 
         this.finishedCallback = () => {
@@ -40,12 +40,13 @@ export class DanceState extends State {
     // }
 
     Enter(prevState: State) {
-        const curAction = this.parent.proxy.animations['dance'].action;
+        // const curAction = this.parent.proxy.animations['dance'].action;
+        const curAction = this.parent.animations['dance'].action
         const mixer = curAction.getMixer();
         mixer.addEventListener('finished', this.finishedCallback);
 
         if (prevState) {
-            const prevAction = this.parent.proxy.animations[prevState.Name].action;
+            const prevAction = this.parent.animations[prevState.Name].action;
 
             curAction.reset();
             curAction.setLoop(LoopOnce, 1);
@@ -63,7 +64,7 @@ export class DanceState extends State {
     }
 
     Cleanup() {
-        const action = this.parent.proxy.animations['dance'].action;
+        const action = this.parent.animations['dance'].action;
 
         // action.getMixer().removeEventListener('finished', this._CleanupCallback);
     }
@@ -82,7 +83,7 @@ export class WalkState extends State {
 
     constructor(parent: any) {
         super(parent);
-        // this.parent = parent;
+        this.parent = parent;
         this.Name = 'walk';
     }
 
@@ -91,9 +92,9 @@ export class WalkState extends State {
     // }
 
     Enter(prevState: State) {
-        const curAction = this.parent.proxy.animations['walk'].action;
+        const curAction = this.parent.animations['walk'].action;
         if (prevState) {
-            const prevAction = this.parent.proxy.animations[prevState.Name].action;
+            const prevAction = this.parent.animations[prevState.Name].action;
 
             curAction.enabled = true;
 
@@ -133,31 +134,28 @@ export class IdleState extends State {
 
     constructor(parent: any) {
         super(parent);
-        // this.parent = parent;
+        this.parent = parent;
         this.Name = 'idle';
     }
 
-    // get Name() {
-    //     return 'idle';
-    // }
-
     Enter(prevState: State) {
         // const idleAction = this.parent.proxy.animations['walk'].action;
-        const idleAction = this.parent.proxy.animations['idle'].action;
+        const idleAction = this.parent.animations['idle'].action;
         console.log(this.Name + ":" + idleAction);
 
 
         if (prevState) {
-            const prevAction = this.parent.proxy.animations[prevState.Name].action;
-            // idleAction.time = 0.0;
-            // idleAction.enabled = true;
-            // idleAction.setEffectiveTimeScale(1.0);
-            // idleAction.setEffectiveWeight(1.0);
-            // idleAction.crossFadeFrom(prevAction, 0.5, true);
+            const prevAction = this.parent.animations[prevState.Name].action;
+            idleAction.time = 0.0;
+            idleAction.enabled = true;
+            idleAction.setEffectiveTimeScale(1.0);
+            idleAction.setEffectiveWeight(1.0);
+            idleAction.crossFadeFrom(prevAction, 0.5, true);
             idleAction.play();
 
         } else {
             console.log(idleAction);
+            console.log("inside idle")
 
             idleAction.play();
         }
